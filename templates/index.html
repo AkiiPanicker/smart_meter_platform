@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+
+{% block title %}NDCC Smart Meter Platform{% endblock %}
+
+{% block content %}
+<header class="header sticky top-0 z-50 p-4">
+    <div class="container mx-auto flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            <div>
+                <h1 class="text-xl font-bold text-white">NDCC Smart Meter Platform</h1>
+                <p class="text-sm text-gray-400">IoT + AI Tamper Detection System</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-6 text-sm">
+             <div class="flex items-center space-x-2">
+                <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.556L11.05 19.495m-2.939-2.939a7.5 7.5 0 0110.607 0m-10.607 0a7.5 7.5 0 0010.607 0m-10.607 0L5.172 13.617m14.142 5.878L15 15.75M3 8.25a15 15 0 0115.364 12.364m0 0a15 15 0 00-15.364-12.364m15.364 12.364L21 21m-18-12.75h.008v.008H3V8.25z"></path></svg>
+                <span class="font-medium text-green-400">Connected</span>
+            </div>
+            <div id="header-confidence" class="flex items-center space-x-2"></div>
+            <div class="text-right">
+                <p id="live-time" class="font-mono text-base"></p>
+                <p class="text-xs text-gray-500">Live Time</p>
+            </div>
+        </div>
+    </div>
+</header>
+
+<nav class="header sticky top-16 z-40">
+    <div id="nav-bar" class="container mx-auto flex space-x-8 px-4">
+        <a href="#" data-page="dashboard" class="nav-link active flex items-center space-x-2 py-3"><span>Dashboard</span></a>
+        <a href="#" data-page="ai-insights" class="nav-link flex items-center space-x-2 py-3"><span>AI Insights</span></a>
+        <a href="#" data-page="device-logs" class="nav-link flex items-center space-x-2 py-3"><span>Device Logs</span></a>
+        <a href="#" data-page="pid-simulation" class="nav-link flex items-center space-x-2 py-3"><span>PID Simulation</span></a>
+        <a href="#" data-page="settings" class="nav-link flex items-center space-x-2 py-3"><span>Settings</span></a>
+    </div>
+</nav>
+
+<main class="container mx-auto p-6">
+    <!-- Dashboard Page -->
+    <div id="page-dashboard" class="page-container">
+        <div id="summary-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2">
+                <h2 class="text-2xl font-semibold mb-4 text-white">Live Meter Readings</h2>
+                <div id="readings-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            </div>
+            <div>
+                 <h2 class="text-2xl font-semibold mb-4 text-white">Recent AI Predictions</h2>
+                 <div id="predictions-container" class="space-y-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Insights Page -->
+    <div id="page-ai-insights" class="page-container hidden space-y-8">
+        <div id="ai-summary-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+        <div class="card p-6">
+            <h3 class="text-lg font-bold mb-4 flex items-center space-x-2">AI Model Information</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div><p class="opacity-75 mb-1">Algorithm</p><p class="font-bold">LSTM Classifier</p></div>
+                <div><p class="opacity-75 mb-1">Features</p><p class="font-bold">V, I, Light, Patterns</p></div>
+                <div><p class="opacity-75 mb-1">Threshold</p><p class="font-bold">75% Confidence</p></div>
+                <div><p class="opacity-75 mb-1">Training Data</p><p class="font-bold">10K+ Samples</p></div>
+            </div>
+        </div>
+        <div class="card p-6">
+            <h3 class="text-lg font-bold mb-4">Recent AI Predictions</h3>
+            <div class="overflow-x-auto">
+                 <table class="w-full text-left">
+                     <thead>
+                         <tr class="border-b border-gray-700">
+                             <th class="p-3">Timestamp</th><th class="p-3">Node ID</th><th class="p-3">Event</th>
+                             <th class="p-3">Confidence</th><th class="p-3">Severity</th><th class="p-3">Explanation</th>
+                         </tr>
+                     </thead>
+                     <tbody id="ai-insights-table"></tbody>
+                 </table>
+             </div>
+        </div>
+        <div class="card p-6">
+             <h3 class="text-lg font-bold mb-4">Anomaly Frequency Trend (24h)</h3>
+             <div style="height: 300px;">
+                 <canvas id="anomalyChart"></canvas>
+             </div>
+        </div>
+    </div>
+
+    <!-- Device Logs Page -->
+    <div id="page-device-logs" class="page-container hidden space-y-6">
+        <div class="card p-4 flex flex-col md:flex-row gap-4 items-center">
+            <div class="relative flex-grow w-full">
+                <input type="text" id="log-search-input" placeholder="Search by Node ID..." class="w-full bg-gray-900 border border-gray-700 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+            </div>
+            <div id="log-filter-buttons" class="flex gap-2">
+                <button data-filter="ALL" class="log-filter active px-4 py-2 rounded-md bg-cyan-600 text-white font-semibold">ALL</button>
+                <button data-filter="NORMAL" class="log-filter px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 font-semibold">NORMAL</button>
+                <button data-filter="TAMPER" class="log-filter px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 font-semibold">TAMPER</button>
+            </div>
+            <button class="w-full md:w-auto px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-500 text-white font-semibold flex items-center justify-center space-x-2"><span>Export CSV</span></button>
+        </div>
+        <div class="card p-5">
+             <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead><tr class="border-b border-gray-700 text-sm">
+                        <th class="p-3">Node ID</th><th class="p-3">Timestamp</th><th class="p-3">Event</th>
+                        <th class="p-3">Voltage</th><th class="p-3">Current</th><th class="p-3">Light</th>
+                        <th class="p-3">Confidence</th><th class="p-3">Verified</th>
+                    </tr></thead>
+                    <tbody id="device-logs-table"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PID Simulation Page -->
+    <div id="page-pid-simulation" class="page-container hidden space-y-8">
+        <div class="card p-6">
+            <h3 class="text-lg font-bold mb-4">PID Controller Response</h3>
+            <p class="text-sm text-gray-400 mb-4">
+                This chart simulates a PID controller's response to a system disturbance (e.g., a tamper event). 
+            </p>
+            <div style="height: 400px;">
+                <canvas id="pidChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Page -->
+    <div id="page-settings" class="page-container hidden space-y-6">
+       <div class="card p-6">
+            <h3 class="text-xl font-bold mb-4">Theme Settings</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <div class="p-4 rounded-lg border-2 border-cyan-500 cursor-pointer text-center"><div class="w-full h-20 rounded-lg mb-2 bg-gray-900"></div><p>Neon Dark (Active)</p></div>
+                 <div class="p-4 rounded-lg border-2 border-gray-700 hover:border-gray-500 cursor-pointer text-center"><div class="w-full h-20 rounded-lg mb-2 bg-gray-50"></div><p>Light</p></div>
+                 <div class="p-4 rounded-lg border-2 border-gray-700 hover:border-gray-500 cursor-pointer text-center"><div class="w-full h-20 rounded-lg mb-2 bg-black"></div><p>True Dark</p></div>
+            </div>
+       </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const API_URL = '/api'; // Use relative path
+        let allReadings = [], liveReadings = [], allPredictions = [];
+        let anomalyChartInstance = null;
+        let pidChartInstance = null;
+
+        const navBar = document.getElementById('nav-bar');
+        const pages = document.querySelectorAll('.page-container');
+        
+        navBar.addEventListener('click', (e) => {
+            e.preventDefault();
+            const link = e.target.closest('.nav-link');
+            if (!link) return;
+            showPage(link.dataset.page);
+        });
+
+        function showPage(pageId) {
+            pages.forEach(p => p.classList.add('hidden'));
+            document.getElementById(`page-${pageId}`).classList.remove('hidden');
+            
+            navBar.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            navBar.querySelector(`[data-page="${pageId}"]`).classList.add('active');
+            
+            if (pageId === 'ai-insights' && !anomalyChartInstance) setTimeout(renderAnomalyChart, 100);
+            if (pageId === 'pid-simulation' && !pidChartInstance) setTimeout(initPidChart, 100);
+        }
+
+        const fetchJSON = async (endpoint) => {  
+             try {
+                const response = await fetch(`${API_URL}${endpoint}`);
+                if (!response.ok) return null;
+                return await response.json();
+            } catch (error) { console.error(`Error:`, error); return null; }
+        };
+
+        function renderHeader(status) { 
+            const el = document.getElementById('header-confidence');
+            if (el && status) {
+                 const confidence = status.avg_confidence || 0;
+                 el.innerHTML = `<svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 20.917l9 2.5 9-2.5a12.02 12.02 0 00-2.382-9.982z"></path></svg><div class="w-24 h-2 bg-gray-700 rounded-full ml-2 mr-2"><div class="h-full bg-gradient-to-r from-green-400 to-cyan-400 rounded-full" style="width: ${confidence.toFixed(0)}%;"></div></div><span class="font-semibold text-white">${confidence.toFixed(0)}%</span>`;
+            }
+        }
+        
+        function renderDashboard(status, readings, predictions) { 
+            if(!status) return;
+            document.getElementById('summary-container').innerHTML = `
+                <div class="card p-5"><div><p class="text-sm text-gray-400">Total Nodes</p><p class="text-3xl font-bold">${status.total_nodes || 0}</p></div></div>
+                <div class="card p-5"><div><p class="text-sm text-gray-400">Tampered Nodes</p><p class="text-3xl font-bold">${status.tampered_nodes || 0}</p></div></div>
+                <div class="card p-5"><div><p class="text-sm text-gray-400">Avg Confidence</p><p class="text-3xl font-bold">${status.avg_confidence || 0}%</p></div></div>
+                <div class="card p-5"><div><p class="text-sm text-gray-400">Verified Ratio</p><p class="text-3xl font-bold">${status.verified_ratio || 0}%</p></div></div>`;
+            
+            document.getElementById('readings-grid').innerHTML = (readings || []).map(r => {
+                const health = r.health_score || 100;
+                const hColor = health > 75 ? 'text-green-400' : health > 40 ? 'text-yellow-400' : 'text-red-400';
+                return `<div class="card p-4 rounded-lg ${(r.event_type || '').toLowerCase()}">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-lg flex items-center"><span class="status-dot w-2.5 h-2.5 mr-2 rounded-full"></span>${r.node_id}</h3>
+                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full ${r.event_type === 'TAMPER' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}">${r.event_type}</span>
+                    </div>
+                    <div class="text-sm space-y-2 font-mono">
+                        <p class="flex justify-between"><span>Health:</span> <span class="font-bold ${hColor}">${health}%</span></p>
+                        <p class="flex justify-between"><span>Voltage:</span> <span>${(r.voltage||0).toFixed(1)}V</span></p>
+                        <p class="flex justify-between"><span>Current:</span> <span>${(r.current||0).toFixed(2)}A</span></p>
+                        <p class="flex justify-between"><span>Light:</span> <span>${(r.light||0).toFixed(0)}</span></p>
+                    </div>
+                    ${r.tamper_reason ? `<div class="mt-3 p-2 bg-red-500/10 rounded text-red-400 text-xs">${r.tamper_reason}</div>` : ''}
+                </div>`;
+            }).join('');
+
+            document.getElementById('predictions-container').innerHTML = (predictions || []).slice(0, 5).map(p => { 
+                const sColor = p.severity === 'high' ? 'red' : p.severity === 'medium' ? 'yellow' : 'blue'; 
+                return `<div class="card p-4 rounded-lg border-l-4 border-${sColor}-500"><p class="font-bold">${p.node_id}</p><p class="text-sm text-${sColor}-400">${p.severity || ''} | ${(p.confidence||0).toFixed(1)}%</p><p class="text-xs mt-1 text-gray-400">${p.explanation || ''}</p></div>`; 
+            }).join('');
+        }
+        
+        function renderAiInsightsPage(predictions) {
+            const safe = predictions || [];
+            const high = safe.filter(p => p.confidence > 90).length;
+            const avg = safe.length > 0 ? safe.reduce((s, p) => s + p.confidence, 0) / safe.length : 0;
+
+            document.getElementById('ai-summary-container').innerHTML = `
+                <div class="card p-5"><div><p class="text-sm text-gray-400">Total</p><p class="text-3xl font-bold">${safe.length}</p></div></div>
+                <div class="card p-5"><div><p class="text-sm text-gray-400">High Conf.</p><p class="text-3xl font-bold">${high}</p></div></div>
+                <div class="card p-5"><div><p class="text-sm text-gray-400">Avg Conf.</p><p class="text-3xl font-bold">${avg.toFixed(1)}%</p></div></div>
+                <div class="card p-5"><div><p class="text-sm text-gray-400">Algorithm</p><p class="text-3xl font-bold">LSTM</p></div></div>
+            `;
+            document.getElementById('ai-insights-table').innerHTML = safe.map(p => `
+                <tr class="border-b border-gray-800 hover:bg-gray-800 text-sm">
+                    <td class="p-3">${new Date(p.timestamp).toLocaleString()}</td>
+                    <td class="p-3 font-bold">${p.node_id}</td>
+                    <td class="p-3">${p.event_type}</td>
+                    <td class="p-3">${(p.confidence||0).toFixed(1)}%</td>
+                    <td class="p-3">${p.severity || ''}</td>
+                    <td class="p-3 text-xs text-gray-400">${p.explanation || ''}</td>
+                </tr>`).join('');
+        }
+        
+        function renderDeviceLogsTable() { 
+            const tbody = document.getElementById('device-logs-table');
+            const search = (document.getElementById('log-search-input').value || '').toLowerCase();
+            const filterEl = document.querySelector('.log-filter.active');
+            const filter = filterEl ? filterEl.dataset.filter : 'ALL';
+            
+            const logs = (allReadings || []).filter(r => { 
+                const matchId = r.node_id.toLowerCase().includes(search); 
+                const matchType = filter === 'ALL' || r.event_type === filter; 
+                return matchId && matchType; 
+            });
+            
+            tbody.innerHTML = logs.map(r => `
+                <tr class="border-b border-gray-800 hover:bg-gray-800 text-sm font-mono">
+                    <td class="p-3 text-white font-semibold">${r.node_id}</td>
+                    <td>${new Date(r.timestamp).toLocaleString()}</td>
+                    <td><span class="px-2 py-0.5 text-xs font-semibold rounded-full ${r.event_type === 'TAMPER' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}">${r.event_type}</span></td>
+                    <td>${(r.voltage||0).toFixed(1)}V</td>
+                    <td>${(r.current||0).toFixed(2)}A</td>
+                    <td>${(r.light||0).toFixed(0)}</td>
+                    <td>${(r.confidence||0).toFixed(1)}%</td>
+                    <td>${r.verified ? '<span class="text-green-400">✔</span>' : '<span class="text-red-400">✖</span>'}</td>
+                </tr>`).join('');
+        }
+        
+        document.getElementById('log-search-input').addEventListener('input', renderDeviceLogsTable);
+        document.getElementById('log-filter-buttons').addEventListener('click', e => { 
+            if(e.target.classList.contains('log-filter')) { 
+                document.querySelectorAll('.log-filter').forEach(b => b.classList.remove('active', 'bg-cyan-600'));
+                document.querySelectorAll('.log-filter').forEach(b => b.classList.add('bg-gray-700', 'hover:bg-gray-600'));
+                e.target.classList.add('active', 'bg-cyan-600');
+                renderDeviceLogsTable();
+            }
+        });
+
+        // Simplified PID/Anomaly Charts
+        function renderAnomalyChart() {
+            const ctx = document.getElementById('anomalyChart').getContext('2d');
+            if(anomalyChartInstance) anomalyChartInstance.destroy();
+            anomalyChartInstance = new Chart(ctx, { type: 'line', data: { labels: Array(24).fill('').map((_,i)=>i+':00'), datasets: [{ label: 'Events', data: Array(24).fill(0).map(()=>Math.floor(Math.random()*5)), borderColor: '#22d3ee', fill: true }] }, options: { maintainAspectRatio: false } });
+        }
+        function initPidChart() {
+            const ctx = document.getElementById('pidChart').getContext('2d');
+            if(pidChartInstance) pidChartInstance.destroy();
+            pidChartInstance = new Chart(ctx, { type: 'line', data: { labels: [], datasets: [{ label: 'Stability', borderColor: '#22d3ee', data: [] }] }, options: { maintainAspectRatio: false } });
+        }
+        async function updatePidChart() {
+            if(!pidChartInstance) return;
+            const data = await fetchJSON('/pid_data');
+            if(!data || !data.time) return;
+            pidChartInstance.data.labels = data.time.map((t,i) => i);
+            pidChartInstance.data.datasets[0].data = data.process_variable;
+            pidChartInstance.update('none');
+        }
+
+        async function updateAllData() {
+            // THE FIX IS HERE: Load logs specifically for the table
+            const [status, readings, predictions, logs] = await Promise.all([
+                fetchJSON('/status'), fetchJSON('/readings'), fetchJSON('/predictions'), fetchJSON('/logs')
+            ]);
+            
+            liveReadings = readings || []; // For Cards
+            allReadings = logs || [];      // For Table
+            allPredictions = predictions || [];
+            
+            renderHeader(status);
+            renderDashboard(status, liveReadings, allPredictions);
+            renderAiInsightsPage(allPredictions); 
+            renderDeviceLogsTable();
+            
+            if(!document.getElementById('page-pid-simulation').classList.contains('hidden')) updatePidChart();
+        }
+
+        function updateTime() { document.getElementById('live-time').textContent = new Date().toLocaleTimeString(); }
+
+        updateAllData();
+        updateTime();
+        setInterval(updateAllData, 3000); 
+        setInterval(updateTime, 1000);
+    });
+</script>
+{% endblock %}

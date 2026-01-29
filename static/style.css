@@ -1,0 +1,87 @@
+:root {
+    --bg-main: #030712;       
+    --bg-card: #111827;       
+    --border-color: #1f2937; 
+    --accent-color: #22d3ee; 
+    --text-primary: #f9fafb; 
+    --text-secondary: #9ca3af;
+    --font-sans: 'Inter', sans-serif;
+    --success: #10b981;
+    --danger: #ef4444;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+}
+
+.header {
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+}
+
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 0.5rem;
+    padding: 1px;
+    width: 100%;
+    background: linear-gradient(120deg, var(--accent-color), transparent);
+
+
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+
+    -webkit-mask-composite: destination-out;
+
+    mask-composite: exclude;
+
+
+    pointer-events: none;
+    animation: glow 5s linear infinite;
+}
+.nav-link {
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease-in-out;
+}
+
+.nav-link.active,
+.nav-link:hover {
+    color: var(--accent-color);
+    border-bottom-color: var(--accent-color);
+}
+
+.tampered {
+    border-left: 4px solid var(--danger) !important;
+}
+
+.tampered .status-dot {
+    background-color: var(--danger);
+    animation: pulse 1.5s infinite;
+}
+
+.normal .status-dot {
+    background-color: var(--success);
+}
+
+
+@keyframes pulse {
+    0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
