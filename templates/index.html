@@ -114,11 +114,16 @@
     </div>
     
     <!-- PID Simulation Page -->
-    <div id="page-pid-simulation" class="page-container hidden space-y-8">
-        <div class="card p-6">
-            <h3 class="text-lg font-bold mb-4">PID Controller Response</h3>
+<div id="page-pid-simulation" class="page-container hidden space-y-8">
+        <div class="card p-6 relative">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">PID Controller Response</h3>
+                <button onclick="triggerPidDisturbance()" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded shadow transition">
+                    💥 Simulate Tamper
+                </button>
+            </div>
             <p class="text-sm text-gray-400 mb-4">
-                This chart simulates a PID controller's response to a system disturbance (e.g., a tamper event). 
+                Click the button above to simulate a sensor attack. The <span class="text-cyan-400">Blue Line</span> (Stability) will drop, and the <span class="text-red-500">Red Line</span> (AI Controller) will fight to push it back to 100.
             </p>
             <div style="height: 400px;">
                 <canvas id="pidChart"></canvas>
@@ -279,10 +284,71 @@
             if(anomalyChartInstance) anomalyChartInstance.destroy();
             anomalyChartInstance = new Chart(ctx, { type: 'line', data: { labels: Array(24).fill('').map((_,i)=>i+':00'), datasets: [{ label: 'Events', data: Array(24).fill(0).map(()=>Math.floor(Math.random()*5)), borderColor: '#22d3ee', fill: true }] }, options: { maintainAspectRatio: false } });
         }
-        function initPidChart() {
-            const ctx = document.getElementById('pidChart').getContext('2d');
+       function initPidChart() {
+            const ctxEl = document.getElementById('pidChart');
+            if(!ctxEl) return;
+            const ctx = ctxEl.getContext('2d');
+            
             if(pidChartInstance) pidChartInstance.destroy();
-            pidChartInstance = new Chart(ctx, { type: 'line', data: { labels: [], datasets: [{ label: 'Stability', borderColor: '#22d3ee', data: [] }] }, options: { maintainAspectRatio: false } });
+
+            pidChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [], 
+                    datasets: [
+                        { 
+                            label: 'System Stability (Process Variable)', 
+                            borderColor: 'rgb(34, 211, 238)', // Cyan
+                            backgroundColor: 'rgba(34, 211, 238, 0.1)',
+                            data: [], 
+                            fill: true, 
+                            tension: 0.4,
+                            pointRadius: 0
+                        },
+                        { 
+                            label: 'Setpoint', 
+                            borderColor: 'rgb(75, 85, 99)', // Gray
+                            data: [], 
+                            fill: false, 
+                            borderDash: [5, 5], 
+                            tension: 0.1,
+                            pointRadius: 0 
+                        },
+                        { 
+                            label: 'Corrective Action (Controller)', 
+                            borderColor: 'rgb(239, 68, 68)', // RED for Correction
+                            data: [], 
+                            fill: false, 
+                            tension: 0.2, 
+                            hidden: false // UNHIDDEN now
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: {
+                        x: { 
+                            type: 'linear', 
+                            title: { display: true, text: 'Time (s)', color: '#9ca3af' }, 
+                            ticks: { color: '#9ca3af' }, 
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' } 
+                        },
+                        y: { 
+                            min: 60, // Fixed Scale prevents crazy zooming
+                            max: 120,
+                            title: { display: true, text: 'Value', color: '#9ca3af' }, 
+                            ticks: { color: '#9ca3af' }, 
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' } 
+                        }
+                    },
+                    plugins: { 
+                        legend: { labels: { color: '#f9fafb' } },
+                        tooltip: { mode: 'index', intersect: false }
+                    }
+                }
+            });
         }
         async function updatePidChart() {
             if(!pidChartInstance) return;
