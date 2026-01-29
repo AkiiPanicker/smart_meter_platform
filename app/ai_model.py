@@ -133,3 +133,4 @@ class PredictiveModel:
             "health_score": round(health_score),
             "prediction": prediction
         }
+        
