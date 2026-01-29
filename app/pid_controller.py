@@ -25,17 +25,15 @@ class PIDController:
         # P Term
         proportional = self.Kp * error
         
-        # I Term with Anti-Windup (Important for stability)
+        # I Term
         self._integral += self.Ki * error * dt
-        self._integral = max(-5, min(self._integral, 5)) 
+        self._integral = max(self.output_limits[0], min(self._integral, self.output_limits[1])) 
         
         # D Term
         derivative = (error - self._last_error) / dt
         
         # Output
         output = proportional + self._integral + (self.Kd * derivative)
-        
-        # Clamping
         output = max(self.output_limits[0], min(output, self.output_limits[1]))
         
         self._last_error = error
@@ -45,19 +43,19 @@ class PIDController:
 
 class SystemSimulation:
     def __init__(self):
-        # TUNED VALUES for smoother non-oscillating graph
-        self.pid = PIDController(Kp=0.5, Ki=0.1, Kd=0.05, setpoint=100)
+        # Slightly more aggressive tuning so it reaches 100 strictly
+        self.pid = PIDController(Kp=1.2, Ki=0.5, Kd=0.1, setpoint=100)
         self.process_variable = 100.0
         self.last_step_time = time.time()
         
-        # Visual data history
+        # Store history
         self.history = {
             "time": [],
             "process_variable": [],
             "setpoint": [],
             "controller_output": []
         }
-        self._max_history = 60 # Keep 60 seconds
+        self._max_history = 60 
 
     def step(self):
         current_time = time.time()
@@ -67,31 +65,29 @@ class SystemSimulation:
 
         control_output = self.pid.update(self.process_variable)
         
-        # Simulation Logic: 
-        # The system naturally decays towards 80 if untouched. 
-        # The PID output pushes it back up to 100.
+        # Physics: System naturally wants to fall to 80 without intervention
         natural_decay = -0.3 * (self.process_variable - 80)
         
         self.process_variable += (natural_decay + control_output) * dt
         
-        # Add very small noise for realism
-        self.process_variable += np.random.uniform(-0.2, 0.2)
+        # REDUCED NOISE: From 0.2 down to 0.02. 
+        # This will make the graph a straight line, making dips clearly visible.
+        self.process_variable += np.random.uniform(-0.02, 0.02) 
 
         self._update_history(control_output)
 
     def trigger_disturbance(self):
-        """Called by the AI model when Tamper is detected."""
         print("💥 PID Simulation: Disturbance Triggered!")
-        # Instant large drop to demonstrate controller recovery
-        self.process_variable -= 35 
-        # Reset integral to allow fresh recovery
+        # Big instant drop to visualy show the red line spiking to fix it
+        self.process_variable -= 40 
         self.pid._integral = 0 
 
     def _update_history(self, output):
         self.history["time"].append(time.time())
         self.history["process_variable"].append(round(self.process_variable, 2))
         self.history["setpoint"].append(self.pid.setpoint)
-        self.history["controller_output"].append(round(output, 2))
+        # We assume baseline correction is 0 visually for cleaner graph
+        self.history["controller_output"].append(round(output, 2) + 80) 
         
         if len(self.history["time"]) > self._max_history:
             for k in self.history:
