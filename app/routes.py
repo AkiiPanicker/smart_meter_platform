@@ -56,3 +56,4 @@ def get_pid_data():
 def simulate_new_data():
     initialize_data()
     return jsonify({"message": "OK"}), 200
+    
