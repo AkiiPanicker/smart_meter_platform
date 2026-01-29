@@ -88,3 +88,4 @@ def convert_json_to_meter_reading(json_data: Dict) -> MeterReading:
         # Default health score, overwritten in __init__.py logic usually
         health_score=100
     )
+    
