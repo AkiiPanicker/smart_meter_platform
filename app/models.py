@@ -31,3 +31,4 @@ class AIPrediction:
     confidence: float
     explanation: str
     severity: Severity
+
